@@ -11,10 +11,14 @@ from pvrecorder import PvRecorder
 from dotenv import load_dotenv
 import pyttsx3
 import sounddevice as sd
+import pyautogui
+import time
+import pyperclip
 
 load_dotenv()
 engine = pyttsx3.init()
 transcription = ""
+TAB_INDEX2=2
 
 def print_and_speak(msg: str): 
     print(msg)
@@ -231,6 +235,28 @@ def ask_yes_no_by_voice(prompt):
     else:
         return None
 
+def type_text(text):
+    pyautogui.write(text, interval=0.1)
+
+def switch_tab(ind):
+    if not ind:
+        raise ValueError("This switch tab index is empty")
+    time.sleep(0.1)
+    pyautogui.keyDown('alt')
+    pyautogui.press(str(ind))
+    pyautogui.keyUp('alt')
+    time.sleep(0.1)
+    
+def run_command(command: str):
+    time.sleep(1)
+    switch_tab(TAB_INDEX2)
+    cwd = os.getcwd()
+    type_text(f"cd {cwd}")
+    pyautogui.press('enter')
+    type_text(command)
+    pyautogui.press('enter')
+    time.sleep(1)
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--keyword_paths', nargs='+', required=True, help='Absolute paths to keyword model files')
@@ -250,7 +276,9 @@ def main():
         record_thread = threading.Thread(target=record_audio, args=("recorded.wav",))
         record_thread.start()
         record_thread.join()
-        print(transcribe_audio("recorded.wav"))
+        
+        command = transcribe_audio("recorded.wav")
+        run_command(command)
 
 if __name__ == '__main__':
     main()
