@@ -45,7 +45,7 @@ async def focus_on_specific_session(connection, target_window_title, target_tab_
                         session_title = await session.async_get_variable("name")
                         if session_title == target_session_title:
                             # Focus on the session
-                            await tab.async_select()  
+                            await session.async_activate()
                             print(f"Focused on window: {window_title}, tab: {tab_title}, session: {session_title}")
                             return
 
@@ -64,16 +64,11 @@ async def focus_context(connection, target_window_title, target_tab_title, targe
     """
     await focus_on_specific_session(connection, target_window_title, target_tab_title, target_session_title)
     
-    # Focus on iTerm2
+    # Ensure iTerm2 is brought to the foreground
     focus_iterm2()
 
-
-if __name__ == "__main__":
-    target_window_title = None
-    target_tab_title = "My Custom Title (zsh)"
-    target_session_title = "My Custom Title (zsh)"
-
-    time.sleep(8)
-
+def focus_iterm2_run(target_window_title = None, target_tab_title = "My Custom Title (zsh)", target_session_title = "My Custom Title (zsh)"):
+    time.sleep(2)
     iterm2.run_until_complete(partial(focus_context, target_window_title=target_window_title, \
         target_tab_title=target_tab_title, target_session_title=target_session_title))
+

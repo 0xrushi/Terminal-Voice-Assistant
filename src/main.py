@@ -10,6 +10,7 @@ import pvporcupine
 from pvrecorder import PvRecorder
 from dotenv import load_dotenv
 import pyttsx3
+import sounddevice as sd
 
 load_dotenv()
 engine = pyttsx3.init()
@@ -20,7 +21,7 @@ def print_and_speak(msg: str):
     engine.say(msg)
     engine.runAndWait()
 
-def record_audio(filename, sample_rate=16000, chunk_size=512, channels=1):
+def record_audio(filename, sample_rate=16000, chunk_size=512, channels=1, device_id=None):
     """
     Records audio from the default microphone input until the 'esc' key is pressed. 
     The audio is recorded in WAV format and saved to the specified file.
@@ -33,12 +34,18 @@ def record_audio(filename, sample_rate=16000, chunk_size=512, channels=1):
     chunk_size (int): The number of audio frames per buffer. A larger size reduces CPU usage but increases latency.
         Default is 512.
     channels (int): The number of audio channels (1 for mono, 2 for stereo). Default is 1 (mono).
+    device_id (int, optional): The ID of the audio input device to use. Default is None, which uses the default device.
     """
     p = pyaudio.PyAudio()
+    
+    if device_id is None:
+        device_id = p.get_default_input_device_info()['index']
+        
     stream = p.open(format=pyaudio.paInt16,
                     channels=channels,
                     rate=sample_rate,
                     input=True,
+                    input_device_index=device_id,
                     frames_per_buffer=chunk_size)
     
     frames = []
@@ -107,7 +114,7 @@ def transcribe_audio(filename):
             print_and_speak(msg)
             couldnt_understand = True
             
-def wake_word_detection(access_key, keyword_paths, audio_device_index=-1):
+def wake_word_detection1(access_key, keyword_paths, audio_device_index=-1):
     """
     Detects a wake word in the audio stream from the specified audio device.
 
@@ -152,6 +159,48 @@ def wake_word_detection(access_key, keyword_paths, audio_device_index=-1):
         recorder.delete()
         porcupine.delete()
         
+
+def wake_word_detection(access_key, keyword_paths, audio_device_index=-1):
+    """
+    Detects a wake word in the audio stream from the specified audio device.
+
+    Args:
+        access_key (str): The access key for the Porcupine service.
+        keyword_paths (List[str]): The paths to the keyword model files.
+        audio_device_index (int, optional): The index of the audio device to use. Defaults to -1.
+
+    Returns:
+        bool: True if a wake word is detected, False otherwise.
+
+    Raises:
+        Exception: If an error occurs during the wake word detection process.
+    """
+    try:
+        # Create Porcupine object
+        porcupine = pvporcupine.create(
+            access_key=access_key,
+            keyword_paths=keyword_paths)
+
+        # Initialize PvRecorder
+        recorder = PvRecorder(frame_length=porcupine.frame_length, device_index=audio_device_index)
+        recorder.start()
+
+        print('Listening for wake word... (press Ctrl+C to exit)')
+        while True:
+            pcm = recorder.read()
+            result = porcupine.process(pcm)
+            if result >= 0:
+                print('[%s] Wake word detected!' % str(datetime.now()))
+                recorder.stop()
+                return True
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        if 'recorder' in locals():
+            recorder.delete()
+        if 'porcupine' in locals():
+            porcupine.delete()
+        
 def ask_yes_no_by_voice(prompt):
     """
     Asks a yes/no question via voice and expects a vocal response. The response is recorded and transcribed to determine if the answer is 'yes' or 'no'.
@@ -186,10 +235,18 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--keyword_paths', nargs='+', required=True, help='Absolute paths to keyword model files')
     parser.add_argument('--audio_device_index', type=int, default=-1)
+    parser.add_argument('--show_audio_devices', action='store_true')
+    
     args = parser.parse_args()
+    
+    if args.show_audio_devices:
+        for i, device in enumerate(PvRecorder.get_available_devices()):
+            print('Device %d: %s' % (i, device))
+        return
+    
     access_key = os.getenv("PICOVOICE_ACCESS_KEY")
 
-    if wake_word_detection(access_key, args.keyword_paths, args.audio_device_index):
+    if wake_word_detection(access_key, args.keyword_paths, 1):
         record_thread = threading.Thread(target=record_audio, args=("recorded.wav",))
         record_thread.start()
         record_thread.join()
