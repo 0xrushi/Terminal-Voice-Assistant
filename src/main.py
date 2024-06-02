@@ -251,8 +251,8 @@ def run_command(command: str):
     time.sleep(1)
     switch_tab(TAB_INDEX2)
     cwd = os.getcwd()
-    type_text(f"cd {cwd}")
-    pyautogui.press('enter')
+    # type_text(f"cd {cwd}")
+    # pyautogui.press('enter')
     type_text(command)
     pyautogui.press('enter')
     time.sleep(1)
@@ -281,4 +281,6 @@ def main():
         run_command(command)
 
 if __name__ == '__main__':
+    run_command(f"script -a {os.getcwd()}/command_logs.txt")
     main()
+    run_command("exit")
