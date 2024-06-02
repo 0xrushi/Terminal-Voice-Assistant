@@ -1,2 +1,5 @@
 .env
 *.wav
+.DS_Store
+src/utils/chrmadb/abc.txt
+*.pyc
