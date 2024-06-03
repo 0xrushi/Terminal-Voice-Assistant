@@ -2,7 +2,8 @@ import re
 import pyperclip
 import logging
 from interpreter import interpreter 
-from langchain.llms import OpenAI
+# from langchain.llms import OpenAI
+from langchain_community.llms import OpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 import time
@@ -13,7 +14,7 @@ import asyncio
 from src.utils.chrmadb.generate_db import get_relevant_history
 from src.utils.subprocess_caller import run_get_sessions
 from src.utils.iterm2.iterm2_focus import focus_context, focus_iterm2
-
+from dotenv import load_dotenv
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -21,6 +22,7 @@ warnings.filterwarnings("ignore")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+load_dotenv()
 llm = OpenAI()
 
 template = """
@@ -51,6 +53,8 @@ def call_openinterpreter(query: str):
     try:
         logger.info("Fetching relevant shell history for the query.")
         history = get_relevant_history(query)
+        print(history)
+        exit(0)
         prompt = str(template.format(history=history, question=query))
         
         logger.info("Sending prompt to the OpenAI interpreter.")
@@ -85,7 +89,7 @@ def call_openinterpreter(query: str):
         raise
 
 # # Example usage
-# if __name__ == "__main__":
-#     query = "How do I list all files in a directory?"
-#     response = call_openinterpreter(query)
-#     print("Response:", response)
+if __name__ == "__main__":
+    query = "cd crewAI"
+    response = call_openinterpreter(query)
+    print("Response:", response)

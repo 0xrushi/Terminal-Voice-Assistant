@@ -14,6 +14,19 @@ import sounddevice as sd
 import pyautogui
 import time
 import pyperclip
+import subprocess
+
+from PyQt5.QtCore import QTimer
+import sys
+from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow
+from PyQt5.QtGui import QMovie, QPalette, QColor
+from PyQt5.QtCore import Qt, QSize
+
+from src.chains import bash_chain
+from src.utils.chrmadb.generate_db import get_relevant_history
+from src.utils.subprocess_caller import get_command_logs
+# from src.animation import animation_controller
+# from src.animation.thinking_siri_animation import GIFPlayer
 
 load_dotenv()
 engine = pyttsx3.init()
@@ -251,6 +264,8 @@ def run_command(command: str):
     time.sleep(1)
     switch_tab(TAB_INDEX2)
     cwd = os.getcwd()
+    pyautogui.press('enter')
+    pyautogui.press('enter')
     # type_text(f"cd {cwd}")
     # pyautogui.press('enter')
     type_text(command)
@@ -273,14 +288,58 @@ def main():
     access_key = os.getenv("PICOVOICE_ACCESS_KEY")
 
     if wake_word_detection(access_key, args.keyword_paths, 1):
+        # show animation
+        process = subprocess.Popen(['python', 'src/animation/thinking_siri_animation.py'])
+        
+        # Record audio in a separate thread
         record_thread = threading.Thread(target=record_audio, args=("recorded.wav",))
         record_thread.start()
         record_thread.join()
         
         command = transcribe_audio("recorded.wav")
-        run_command(command)
+        command_approved = False
+
+        # First loop to approve and run the initial command
+        while not command_approved:
+            historical_commands_from_rag = get_relevant_history(command)
+            clean_command = bash_chain.run(command, historical_commands_from_rag)
+            print(clean_command)
+            prompt = "Should I go ahead?" 
+            command_approved = ask_yes_no_by_voice(prompt)
+            
+            if command_approved:
+                # run command in terminal
+                run_command(clean_command)
+                break
+
+        # Second loop to confirm if the command worked or retry
+        while True:
+            msg = "Did that work?"
+            command_success = ask_yes_no_by_voice(msg)
+            
+            if command_success:
+                # kill animation
+                process.terminate()
+                process.wait()
+                break
+            else:
+                msg = "Trying a new prompt."
+                print_and_speak(msg)
+                logs = get_command_logs()
+                clean_command = bash_chain.generate_new(clean_command, logs)
+                print(clean_command)
+                
+                prompt = "Should I go ahead?" 
+                if ask_yes_no_by_voice(prompt):
+                    run_command(clean_command)
+                else:
+                    # If not approved, generate a new command again
+                    continue
+    
+                
 
 if __name__ == '__main__':
     run_command(f"script -a {os.getcwd()}/command_logs.txt")
-    main()
+    main()    
     run_command("exit")
+    sys.exit(app.exec_())

@@ -3,3 +3,8 @@
 .DS_Store
 src/utils/chrmadb/abc.txt
 *.pyc
+*.txt
+*.bin
+*.pickle
+chromadbpath/chroma.sqlite3
+iter.py
