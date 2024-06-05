@@ -116,7 +116,7 @@ def transcribe_audio(filename):
                 transcription = client.audio.transcriptions.create(model="whisper-1", file=audio_file)
                 print(transcription.text)
 
-        prompt = "If this transcription is correct, say 'yes'. If not, say 'no'." if not couldnt_understand else ""
+        prompt = "Is this transcription correct?." if not couldnt_understand else ""
         is_correct = ask_yes_no_by_voice(prompt)
             
         if is_correct:
@@ -245,6 +245,8 @@ def ask_yes_no_by_voice(prompt):
         return True
     elif "no" or "não" in response_text:
         return False
+    elif "stop" in response_text:
+        return "STOP"
     else:
         return None
 
@@ -254,11 +256,11 @@ def type_text(text):
 def switch_tab(ind):
     if not ind:
         raise ValueError("This switch tab index is empty")
-    time.sleep(0.1)
+    time.sleep(0.3)
     pyautogui.keyDown('alt')
     pyautogui.press(str(ind))
     pyautogui.keyUp('alt')
-    time.sleep(0.1)
+    time.sleep(0.3)
     
 def run_command(command: str):
     time.sleep(1)
@@ -304,37 +306,100 @@ def main():
             historical_commands_from_rag = get_relevant_history(command)
             clean_command = bash_chain.run(command, historical_commands_from_rag)
             print(clean_command)
-            prompt = "Should I go ahead?" 
+            prompt = "Should I go ahead? y/n" 
             command_approved = ask_yes_no_by_voice(prompt)
+
+            if command_approved == "STOP":
+                return
             
-            if command_approved:
+            elif command_approved == True:
                 # run command in terminal
                 run_command(clean_command)
-                break
-
-        # Second loop to confirm if the command worked or retry
-        while True:
-            msg = "Did that work?"
-            command_success = ask_yes_no_by_voice(msg)
-            
-            if command_success:
-                # kill animation
-                process.terminate()
-                process.wait()
-                break
-            else:
-                msg = "Trying a new prompt."
-                print_and_speak(msg)
-                logs = get_command_logs()
-                clean_command = bash_chain.generate_new(clean_command, logs)
-                print(clean_command)
+                msg = "Did that work? y/n"
+                command_success = ask_yes_no_by_voice(msg)
                 
-                prompt = "Should I go ahead?" 
-                if ask_yes_no_by_voice(prompt):
-                    run_command(clean_command)
-                else:
-                    # If not approved, generate a new command again
-                    continue
+                if command_success == "STOP":
+                    return
+                
+                if command_success == True:
+                    # kill animation
+                    process.terminate()
+                    process.wait()
+                    # break
+                    return
+                elif command_success == False:
+                    command_approved = False
+                    
+            elif command_approved == False:
+                improvements_for_command = ''
+                i = 1
+                while True:
+                    prompt = "What changes do you need in the command?" 
+                    print_and_speak(prompt)
+                    
+                    # Record audio in a separate thread, save in recorded.wav
+                    record_thread = threading.Thread(target=record_audio, args=("recorded.wav",))
+                    record_thread.start()
+                    record_thread.join()
+                    
+                    improvements_for_command = improvements_for_command + f'{i}. {transcribe_audio("recorded.wav")}'
+                    clean_command = bash_chain.run(clean_command,  f"{historical_commands_from_rag} \n Changes needed: \n {improvements_for_command}")
+                    print(clean_command)
+                    prompt = "Should I go ahead? y/n" 
+                    command_approved = ask_yes_no_by_voice(prompt)
+                    if command_approved == "STOP":
+                        return
+                    elif command_approved == True:
+                        # run command in terminal
+                        run_command(clean_command)
+                        
+                        msg = "Did that work? y/n"
+                        command_success = ask_yes_no_by_voice(msg)
+                        
+                        if command_success == "STOP":
+                            return
+                        
+                        if command_success == True:
+                            # kill animation
+                            process.terminate()
+                            process.wait()
+                            return
+                        elif command_success == False:
+                            i + 1
+                        else:
+                            print_and_speak("Sorry invalid command. Please try again.")     
+            else:
+                print_and_speak("Sorry invalid command. Please try again.")               
+            
+                        
+                
+
+        # # Second loop to confirm if the command worked or retry
+        # while True:
+        #     msg = "Did that work?"
+        #     command_success = ask_yes_no_by_voice(msg)
+            
+        #     if command_success == "STOP":
+        #         return
+            
+        #     if command_success == True:
+        #         # kill animation
+        #         process.terminate()
+        #         process.wait()
+        #         break
+        #     else:
+        #         msg = "Trying a new prompt."
+        #         print_and_speak(msg)
+        #         logs = get_command_logs()
+        #         clean_command = bash_chain.generate_new(clean_command, logs)
+        #         print(clean_command)
+                
+        #         prompt = "Should I go ahead?" 
+        #         if ask_yes_no_by_voice(prompt):
+        #             run_command(clean_command)
+        #         else:
+        #             # If not approved, generate a new command again
+        #             continue
     
                 
 

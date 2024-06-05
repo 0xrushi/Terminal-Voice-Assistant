@@ -33,7 +33,7 @@ async def launch_iterm2_with_custom_title(connection):
                     await session2.async_set_name("My Custom Title2")
                     print("Custom title for session2 set successfully")
 
-                    await set_colors(connection, LIGHT_PRESET_NAME)
+                    await set_colors(connection, DARK_PRESET_NAME)
                     await asyncio.sleep(1)
 
                 # Bring the new window to the front
