@@ -24,7 +24,7 @@ This sounds simiar to the popular [openinterpreter](https://github.com/OpenInter
 
 ## Demo
 
-![https://odysee.com/@rushi:2/Terminal-Voice-Assistant-demo:5](images/thumbnail.png)
+[![Watch the video](images/thumbnail.png)](https://odysee.com/@rushi:2/Terminal-Voice-Assistant-demo:5)
 
 
 
