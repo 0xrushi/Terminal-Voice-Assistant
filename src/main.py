@@ -117,7 +117,8 @@ def transcribe_audio(filename):
                 print(transcription.text)
 
         prompt = "Is this transcription correct?." if not couldnt_understand else ""
-        is_correct = ask_yes_no_by_voice(prompt)
+        # is_correct = ask_yes_no_by_voice(prompt)
+        is_correct = True
             
         if is_correct:
             return transcription.text
@@ -273,6 +274,18 @@ def run_command(command: str):
     type_text(command)
     pyautogui.press('enter')
     time.sleep(1)
+    
+def replace_quotes(text):
+    bad_double_quotes = ['“', '”', '„']
+    bad_single_quotes = ['‘', '’']
+
+    for bad_double in bad_double_quotes:
+        text = text.replace(bad_double, '"')
+    
+    for bad_single in bad_single_quotes:
+        text = text.replace(bad_single, "'")
+    
+    return text
 
 def main():
     parser = argparse.ArgumentParser()
@@ -288,123 +301,51 @@ def main():
         return
     
     access_key = os.getenv("PICOVOICE_ACCESS_KEY")
-
     if wake_word_detection(access_key, args.keyword_paths, 1):
+        message_ok = False
+        
         # show animation
         process = subprocess.Popen(['python', 'src/animation/thinking_siri_animation.py'])
-        
-        # Record audio in a separate thread
-        record_thread = threading.Thread(target=record_audio, args=("recorded.wav",))
-        record_thread.start()
-        record_thread.join()
-        
-        command = transcribe_audio("recorded.wav")
-        command_approved = False
-
-        # First loop to approve and run the initial command
-        while not command_approved:
-            historical_commands_from_rag = get_relevant_history(command)
-            clean_command = bash_chain.run(command, historical_commands_from_rag)
+        his = "Command: "
+        is_first_run = True
+        clean_command = ''
+        while not message_ok:
+            # Record audio in a separate thread
+            record_thread = threading.Thread(target=record_audio, args=("recorded.wav",))
+            record_thread.start()
+            record_thread.join()
+            
+            command = transcribe_audio("recorded.wav")
+            
+            command = clean_command + "\n\n" + command
+                
+            if is_first_run:
+                historical_commands_from_rag = get_relevant_history(command)
+                his + command + "\n"
+            message, clean_command = bash_chain.run(command, historical_commands_from_rag)
+            clean_command = replace_quotes(clean_command)
             print(clean_command)
-            prompt = "Should I go ahead? y/n" 
-            command_approved = ask_yes_no_by_voice(prompt)
-
-            if command_approved == "STOP":
-                return
+            message_ok = message=="ok"
             
-            elif command_approved == True:
-                # run command in terminal
+            command_success = ask_yes_no_by_voice(message)
+            
+            if command_success == True:
                 run_command(clean_command)
-                msg = "Did that work? y/n"
-                command_success = ask_yes_no_by_voice(msg)
                 
-                if command_success == "STOP":
-                    return
-                
-                if command_success == True:
-                    # kill animation
-                    process.terminate()
-                    process.wait()
-                    # break
-                    return
-                elif command_success == False:
-                    command_approved = False
+                msg = "Did that work?"
+                ask_confirm = ask_yes_no_by_voice(msg)
+                if ask_confirm == True:
+                    message_ok = True
+                if ask_confirm == False:
+                    print_and_speak("Lets try modifying the command again.")
+                    message_ok = False
                     
-            elif command_approved == False:
-                improvements_for_command = ''
-                i = 1
-                while True:
-                    prompt = "What changes do you need in the command?" 
-                    print_and_speak(prompt)
-                    
-                    # Record audio in a separate thread, save in recorded.wav
-                    record_thread = threading.Thread(target=record_audio, args=("recorded.wav",))
-                    record_thread.start()
-                    record_thread.join()
-                    
-                    improvements_for_command = improvements_for_command + f'{i}. {transcribe_audio("recorded.wav")}'
-                    clean_command = bash_chain.run(clean_command,  f"{historical_commands_from_rag} \n Changes needed: \n {improvements_for_command}")
-                    print(clean_command)
-                    prompt = "Should I go ahead? y/n" 
-                    command_approved = ask_yes_no_by_voice(prompt)
-                    if command_approved == "STOP":
-                        return
-                    elif command_approved == True:
-                        # run command in terminal
-                        run_command(clean_command)
-                        
-                        msg = "Did that work? y/n"
-                        command_success = ask_yes_no_by_voice(msg)
-                        
-                        if command_success == "STOP":
-                            return
-                        
-                        if command_success == True:
-                            # kill animation
-                            process.terminate()
-                            process.wait()
-                            return
-                        elif command_success == False:
-                            i + 1
-                        else:
-                            print_and_speak("Sorry invalid command. Please try again.")     
-            else:
-                print_and_speak("Sorry invalid command. Please try again.")               
-            
-                        
-                
-
-        # # Second loop to confirm if the command worked or retry
-        # while True:
-        #     msg = "Did that work?"
-        #     command_success = ask_yes_no_by_voice(msg)
-            
-        #     if command_success == "STOP":
-        #         return
-            
-        #     if command_success == True:
-        #         # kill animation
-        #         process.terminate()
-        #         process.wait()
-        #         break
-        #     else:
-        #         msg = "Trying a new prompt."
-        #         print_and_speak(msg)
-        #         logs = get_command_logs()
-        #         clean_command = bash_chain.generate_new(clean_command, logs)
-        #         print(clean_command)
-                
-        #         prompt = "Should I go ahead?" 
-        #         if ask_yes_no_by_voice(prompt):
-        #             run_command(clean_command)
-        #         else:
-        #             # If not approved, generate a new command again
-        #             continue
-    
-                
+        process.terminate()
+        process.wait()
 
 if __name__ == '__main__':
     run_command(f"script -a {os.getcwd()}/command_logs.txt")
-    main()    
+    while True:
+        main()    
     run_command("exit")
     sys.exit(app.exec_())

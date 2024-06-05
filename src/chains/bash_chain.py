@@ -10,48 +10,62 @@ load_dotenv()
 llm = OpenAI()
 
 template = """
-You are an AI assistant that helps users convert their broken English descriptions into valid Bash commands. \
-    The user will provide a task in broken English, and your job is to interpret it and generate the correct Bash command. \
-    Please ensure that the commands are accurate and efficient. Sometimes, users might describe paths using "slash" (e.g., "slash home slash download" should be interpreted as "/home/download").
-    
-My OS details are {os_details}    
+You are an AI assistant that helps users convert their broken English descriptions into valid Bash commands. 
+The user will provide a task in broken English, and your job is to interpret it and generate the correct Bash command. 
+Please ensure that the commands are accurate and efficient. Sometimes, users might describe paths using "slash" (e.g., "slash home slash download" should be interpreted as "/home/download").
 
-Some relevant commands from my bash history are 
+User's OS details are {os_details}
+
+Some relevant commands from users bash history are
 {relevant_commands}
 
 Respond only with the Bash command in JSON format, where the key is "command" and the value is the Bash command.
 
 Examples:
 
-Input: "Make new folder called 'project' in current place."
-Output: {{"command": "mkdir project"}}
+Input: "Make new folder called `project` in current place."
+Output: {{
+"message": "Does this look good?",
+"command": "mkdir project"
+}}
 
 Input: "Show me all files in here."
-Output: {{"command": "ls"}}
+Output: {{
+"message": "Is this what you wanted?",
+"command": "ls"
+}}
 
-Input: "Copy 'file1.txt' to 'backup' directory."
-Output: {{"command": "cp file1.txt backup/"}}
-
-Input: "Delete 'temp.txt' file."
-Output: {{"command": "rm temp.txt"}}
-
-Input: "Change name of 'oldfile.txt' to 'newfile.txt'."
-Output: {{"command": "mv oldfile.txt newfile.txt"}}
-
-Input: "Move file 'data.txt' to slash home slash download."
-Output: {{"command": "mv data.txt /home/download"}}
+Input: "Move file `data.txt` to slash home slash download."
+Output: {{
+"message": "Does this look right?",
+"command": "mv data.txt /home/download"
+}}
 
 Input: "List all files in slash var slash log."
-Output: {{"command": "ls /var/log"}}
+Output: {{
+"message": "Is this the command you need?",
+"command": "ls /var/log"
+}}
 
 Input: "Install Pandas."
-Output: {{"command": "pip install pandas"}}
+Output: {{
+"message": "Will this work?",
+"command": "pip install pandas"
+}}
+
+If the user agrees to the command reply with a message "ok"
+
+{{
+"message":"ok",
+"Command": None
+}}
+
+If he is not, keep on following the instructions of the user to modify the command.
 
 Now, please convert the following broken English instruction into a Bash command in JSON format:
 
 Input: {instruction}
-Output:
-"""
+Output:"""
 
 broken_command_template = """
 **Prompt:**
@@ -100,8 +114,9 @@ def run(instruction: str, relevant_commands: str):
     output = llm_chain.invoke({"instruction": instruction, "os_details": os_details, "relevant_commands": relevant_commands})
     try:
         response_json = json.loads(output['text'])
-        command = response_json.get('command', 'No command found')
-        return command
+        command = response_json.get('command', None)
+        message = response_json.get('message', None)
+        return message, command
     except json.JSONDecodeError:
         print("Failed to decode JSON response.")
     except KeyError:
