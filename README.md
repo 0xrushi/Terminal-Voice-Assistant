@@ -22,6 +22,11 @@ This sounds simiar to the popular [openinterpreter](https://github.com/OpenInter
 
 ## Installation (Coming soon)
 
+## Demo
+
+<iframe width="560" height="315" src="https://odysee.com/@rushi:2/Terminal-Voice-Assistant-demo:5" allowfullscreen></iframe>
+
+
 
 ## Contributing
 
