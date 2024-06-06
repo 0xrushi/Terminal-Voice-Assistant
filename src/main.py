@@ -252,7 +252,7 @@ def ask_yes_no_by_voice(prompt):
         return None
 
 def type_text(text):
-    pyautogui.write(text, interval=0.1)
+    pyautogui.write(text, interval=0.2)
 
 def switch_tab(ind):
     if not ind:
@@ -322,7 +322,9 @@ def main():
             if is_first_run:
                 historical_commands_from_rag = get_relevant_history(command)
                 his + command + "\n"
-            message, clean_command = bash_chain.run(command, historical_commands_from_rag)
+            # uncomment this to enable openai instead of open interpreter
+            # message, clean_command = bash_chain.run(command, historical_commands_from_rag)
+            message, clean_command = bash_chain.run_openinterpreter(command, historical_commands_from_rag)
             clean_command = replace_quotes(clean_command)
             print(clean_command)
             message_ok = message=="ok"
@@ -344,8 +346,8 @@ def main():
         process.wait()
 
 if __name__ == '__main__':
-    run_command(f"script -a {os.getcwd()}/command_logs.txt")
+    # run_command(f"script -a {os.getcwd()}/command_logs.txt")
     while True:
         main()    
     run_command("exit")
-    sys.exit(app.exec_())
+    # sys.exit(app.exec_())
