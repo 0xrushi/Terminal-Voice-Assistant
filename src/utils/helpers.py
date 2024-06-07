@@ -26,8 +26,31 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import json
 import pyttsx3
+import colorlog
+from colorlog import ColoredFormatter
+
+handler = colorlog.StreamHandler()
+formatter = ColoredFormatter(
+	"%(log_color)s%(levelname)-8s%(reset)s %(blue)s%(message)s",
+	datefmt=None,
+	reset=True,
+	log_colors={
+		'DEBUG':    'cyan',
+		'INFO':     'green',
+		'WARNING':  'yellow',
+		'ERROR':    'red',
+		'CRITICAL': 'red,bg_white',
+	},
+	secondary_log_colors={},
+	style='%'
+)
+handler.setFormatter(formatter)
+logger = colorlog.getLogger('example')
+logger.addHandler(handler)
 
 load_dotenv()
+
+engine = pyttsx3.init()
 
 def is_shutdown_request(prompt: str) -> bool:
     """
@@ -65,11 +88,12 @@ def record_and_transcribe_plain_text():
     response = transcribe_audio("recorded.wav")
     return response
 
-def print_and_speak(msg: str): 
-    engine = pyttsx3.init()
-    print(msg)
-    engine.say(msg)
-    engine.runAndWait()
+def print_and_speak(msg: str):
+    global engine
+    logger.info(msg)
+    if not bool(os.getenv("TYPE_ONLY")):
+        engine.say(msg)
+        engine.runAndWait()
     
 
 def record_audio(filename, sample_rate=16000, chunk_size=512, channels=1, device_id=None):
