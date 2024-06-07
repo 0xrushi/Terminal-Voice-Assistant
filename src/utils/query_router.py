@@ -13,9 +13,9 @@ llm = OpenAI(model="gpt-3.5-turbo")
 
 # Define the choices for routing queries
 choices = [
-    "Useful for questions related to any command or script or file operations or install uninstall or clone operations",
+    "Useful for questions related to any simple command or script or file operations or install uninstall or clone operations",
+    "Useful for questions related to complex commands like 'zip and scp this file to this server', 'clone this repo, create python env and install requirements'",
     "Useful for questions related to everything else",
-    "Useful for questions related to opening chrome or vscode or iterm",
 ]
 
 # Define the format string for output
@@ -163,4 +163,5 @@ router_prompt1 = router_prompt0.partial_format(
     num_choices=len(choices),
     max_outputs=len(choices),
 )
-# print(get_route(query_str="open vscode"))
+if __name__ == "__main__":
+    print(get_route(query_str="open vscode"))

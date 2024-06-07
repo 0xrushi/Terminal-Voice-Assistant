@@ -57,7 +57,7 @@ else:
 def get_relevant_history(query="ssh to doraemon"):
     results = collection.query(
         query_texts=[query],
-        n_results=2
+        n_results=10
     )
     relevant_history = '\n'.join(results['documents'][0])
     logger.info(f"Retrieved relevant history: {relevant_history}\n")
