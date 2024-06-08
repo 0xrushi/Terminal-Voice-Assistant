@@ -191,7 +191,7 @@ def main():
             logger.debug(f"---\n{resp}\n{resp.get('reason')}")
             if resp.get("reason")is None:
                 # Record audio in a separate thread
-                if bool(os.getenv("TYPE_ONLY")):
+                if True:
                     command = record_and_transcribe_plain_text()
                 else:
                     command = input("enter command: ")
@@ -221,9 +221,9 @@ def main():
                 logger.debug("line 206 received resp", resp)
                 if resp.get("exit") == True and resp.get("response")=="yes" and resp.get("reason")==None:
                     print_and_speak(resp.get("your_next_message"))
-                    message_ok = False
-                elif (resp.get("response")=="yes" and resp.get("reason")is not None) or (resp.get("response")=="no"):
                     message_ok = True
+                elif (resp.get("response")=="yes" and resp.get("reason")is not None) or (resp.get("response")=="no"):
+                    message_ok = False
                     
         process.terminate()
         process.wait()
