@@ -32,8 +32,8 @@ conda activate tvassist
 conda install pyqt5
 pip install -r requirements.txt
 ```
-2. `make run`
-3. `make kill # to exit`
+5. `make run`
+6. `make kill # to exit`
 
 ## Demo
 

@@ -15,6 +15,8 @@ import pyautogui
 import time
 import pyperclip
 import subprocess
+import colorlog
+from colorlog import ColoredFormatter
 
 from PyQt5.QtCore import QTimer
 import sys
@@ -31,14 +33,31 @@ from src.utils.helpers import print_and_speak, record_and_transcribe_plain_text,
 # from src.animation.thinking_siri_animation import GIFPlayer
 
 load_dotenv()
-engine = pyttsx3.init()
+
+handler = colorlog.StreamHandler()
+formatter = ColoredFormatter(
+	"%(log_color)s%(levelname)-8s%(reset)s %(blue)s%(message)s",
+	datefmt=None,
+	reset=True,
+	log_colors={
+		'DEBUG':    'cyan',
+		'INFO':     'green',
+		'WARNING':  'yellow',
+		'ERROR':    'red',
+		'CRITICAL': 'red,bg_white',
+	},
+	secondary_log_colors={},
+	style='%'
+)
+handler.setFormatter(formatter)
+logger = colorlog.getLogger('example')
+logger.addHandler(handler)
+
 transcription = ""
 TAB_INDEX2=2
 resp = {
     "reason": None
-}
-
-        
+}   
 
 def wake_word_detection(access_key, keyword_paths, audio_device_index=-1):
     """
@@ -65,16 +84,16 @@ def wake_word_detection(access_key, keyword_paths, audio_device_index=-1):
         recorder = PvRecorder(frame_length=porcupine.frame_length, device_index=audio_device_index)
         recorder.start()
 
-        print('Listening for wake word... (press Ctrl+C to exit)')
+        logger.info('Listening for wake word... (press Ctrl+C to exit)')
         while True:
             pcm = recorder.read()
             result = porcupine.process(pcm)
             if result >= 0:
-                print('[%s] Wake word detected!' % str(datetime.now()))
+                logger.debug('[%s] Wake word detected!' % str(datetime.now()))
                 recorder.stop()
                 return True
     except Exception as e:
-        print(f"Error: {e}")
+        logger.warn(f"Error: {e}")
     finally:
         if 'recorder' in locals():
             recorder.delete()
@@ -83,6 +102,7 @@ def wake_word_detection(access_key, keyword_paths, audio_device_index=-1):
         
 def ask_yes_no_by_voice(prompt):
     """
+    **Does not use OPENAI**
     Asks a yes/no question via voice and expects a vocal response. The response is recorded and transcribed to determine if the answer is 'yes' or 'no'.
 
     Args:
@@ -94,14 +114,17 @@ def ask_yes_no_by_voice(prompt):
     client = OpenAI()
 
     print_and_speak(prompt)
+    
+    if not bool(os.getenv("TYPE_ONLY")):
+        filename = "confirmation.wav"
+        record_audio(filename)
 
-    filename = "confirmation.wav"
-    record_audio(filename)
-
-    with open(filename, "rb") as audio_file:
-        confirmation = client.audio.transcriptions.create(model="whisper-1", file=audio_file)
-        response_text = confirmation.text.lower().strip()
-        print("Transcribed confirmation:", response_text)
+        with open(filename, "rb") as audio_file:
+            confirmation = client.audio.transcriptions.create(model="whisper-1", file=audio_file)
+            response_text = confirmation.text.lower().strip()
+            logger.debug("Transcribed confirmation:", response_text)
+    else:
+        response_text = input("Enter your response y/n: ")
 
     # Determine the user's response based on transcription
     if "yes" in response_text:
@@ -117,21 +140,12 @@ def type_text(text):
     try:
         # pane id indexing starts at 0
         # command = f'source ~/.zshrc && echo -e "\\n{text}\\n" | wezterm cli send-text --pane-id 1 --no-paste'
-        command = f'source ~/.zshrc && echo -e "\\n{text}\\n" | wezterm cli send-text --pane-id 1 --no-paste > /tmp/wezterm_output.txt 2>&1'
+        command = f'source ~/.zshrc && echo -e "\\n{text}\\n" | wezterm cli send-text --pane-id 1 --no-paste'
         subprocess.run(['zsh', '-c', command], check=True, text=True)
     except subprocess.CalledProcessError as e:
-        print(f"Error occurred while sending text: {e}")
+        logger.error(f"Error occurred while sending text: {e}")
     except Exception as e:
-        print(f"Unexpected error occurred while sending text: {e}")
-        
-# def switch_tab(ind):
-#     if not ind:
-#         raise ValueError("This switch tab index is empty")
-#     time.sleep(0.3)
-#     pyautogui.keyDown('alt')
-#     pyautogui.press(str(ind))
-#     pyautogui.keyUp('alt')
-#     time.sleep(0.3)
+        logger.error(f"Unexpected error occurred while sending text: {e}")
     
 def run_command(command: str):
     time.sleep(0.5)
@@ -162,19 +176,19 @@ def main():
     
     if args.show_audio_devices:
         for i, device in enumerate(PvRecorder.get_available_devices()):
-            print('Device %d: %s' % (i, device))
+            logger.info('Device %d: %s' % (i, device))
         return
     
     access_key = os.getenv("PICOVOICE_ACCESS_KEY")
-    # if wake_word_detection(access_key, args.keyword_paths, 1):
-    if True:
+    if wake_word_detection(access_key, args.keyword_paths, 1):
+    # if True:
         message_ok = False
         # show animation
         process = subprocess.Popen(['python', 'src/animation/thinking_siri_animation.py'])
         is_first_run = True
         clean_command = ''
         while not message_ok:
-            print(f"---\n{resp}\n{resp.get('reason')}")
+            logger.debug(f"---\n{resp}\n{resp.get('reason')}")
             if resp.get("reason")is None:
                 # Record audio in a separate thread
                 if True:
@@ -193,10 +207,10 @@ def main():
             # message, clean_command = bash_chain.run(command, historical_commands_from_rag)
             message, clean_command = bash_chain.run_openinterpreter(command, historical_commands_from_rag)
             clean_command = replace_quotes(clean_command)
-            print(clean_command)
+            logger.info(clean_command)
             message_ok = message=="ok"
             
-            # should i run it
+            # ai asks: should i run it
             command_success = ask_yes_no_by_voice(message)
             
             if command_success == True:
@@ -204,7 +218,7 @@ def main():
                 
                 # ask_confirm = ask_yes_no_by_voice(msg)
                 resp = ask_user_yes_no_get_reason()
-                print("line 206 received resp", resp)
+                logger.debug("line 206 received resp", resp)
                 if resp.get("exit") == True and resp.get("response")=="yes" and resp.get("reason")==None:
                     print_and_speak(resp.get("your_next_message"))
                     message_ok = True
@@ -213,7 +227,9 @@ def main():
                     
         process.terminate()
         process.wait()
-
+        resp = {
+            "reason": None
+        }
 if __name__ == '__main__':
     # run_command(f"script -a {os.getcwd()}/command_logs.txt")
     while True:
