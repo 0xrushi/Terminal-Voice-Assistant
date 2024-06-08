@@ -20,7 +20,20 @@ This sounds simiar to the popular [openinterpreter](https://github.com/OpenInter
 [Enlarge image](images/current_workflow.svg)
 ![](images/current_workflow.svg)
 
-## Installation (Coming soon)
+## Installation
+
+1. [Download Wezterm](https://wezfurlong.org/wezterm/install/macos.html), open it and create a horizontal split.
+2. In a new terminal `git clone https://github.com/0xrushi/Terminal-Voice-Assistant.git && cd Terminal-Voice-Assistant`
+3. Rename `.env.example` to `.env` and update the OpenAI and Picovoice api keys 
+4. Install the python packages 
+```python
+conda create -n tvassist python=3.10
+conda activate tvassist
+conda install pyqt5
+pip install -r requirements.txt
+```
+2. `make run`
+3. `make kill # to exit`
 
 ## Demo
 

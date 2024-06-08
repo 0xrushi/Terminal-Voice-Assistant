@@ -207,9 +207,9 @@ def main():
                 print("line 206 received resp", resp)
                 if resp.get("exit") == True and resp.get("response")=="yes" and resp.get("reason")==None:
                     print_and_speak(resp.get("your_next_message"))
-                    message_ok = False
-                elif (resp.get("response")=="yes" and resp.get("reason")is not None) or (resp.get("response")=="no"):
                     message_ok = True
+                elif (resp.get("response")=="yes" and resp.get("reason")is not None) or (resp.get("response")=="no"):
+                    message_ok = False
                     
         process.terminate()
         process.wait()

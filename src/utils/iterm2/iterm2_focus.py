@@ -1,6 +1,7 @@
 import asyncio
 import iterm2
 import time
+import pyautogui
 from AppKit import NSWorkspace, NSRunningApplication
 from functools import partial
 
@@ -66,6 +67,15 @@ async def focus_context(connection, target_window_title, target_tab_title, targe
     
     # Ensure iTerm2 is brought to the foreground
     focus_iterm2()
+    
+def switch_tab(ind):
+    if not ind:
+        raise ValueError("This switch tab index is empty")
+    time.sleep(0.3)
+    pyautogui.keyDown('alt')
+    pyautogui.press(str(ind))
+    pyautogui.keyUp('alt')
+    time.sleep(0.3)    
 
 def focus_iterm2_run(target_window_title = None, target_tab_title = "My Custom Title (zsh)", target_session_title = "My Custom Title (zsh)"):
     time.sleep(2)
