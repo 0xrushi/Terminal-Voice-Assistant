@@ -20,7 +20,13 @@ This sounds simiar to the popular [openinterpreter](https://github.com/OpenInter
 [Enlarge image](images/current_workflow.svg)
 ![](images/current_workflow.svg)
 
-## Installation (Coming soon)
+## Installation
+
+1. (Download Wezterm)[https://wezfurlong.org/wezterm/install/macos.html]
+2. `git clone https://github.com/0xrushi/Terminal-Voice-Assistant.git && cd Terminal-Voice-Assistant`
+3. Install the python libraries (requirements.txt coming soon)
+4. `make run`
+5. `make kill # to exit`
 
 ## Demo
 
