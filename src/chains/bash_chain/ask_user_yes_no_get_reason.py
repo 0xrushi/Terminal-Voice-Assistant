@@ -24,7 +24,7 @@ def chat(system_prompt, your_next_message="Did that work?"):
 
     print_and_speak(your_next_message)
 
-    user_message = record_and_transcribe_plain_text()
+    user_message = record_and_transcribe_plain_text().strip().lower()
     
     messages = [
     {"role": "system", "content": system_prompt},

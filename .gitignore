@@ -8,3 +8,4 @@ src/utils/chrmadb/abc.txt
 *.pickle
 chromadbpath/chroma.sqlite3
 iter.py
+!requirements.txt

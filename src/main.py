@@ -177,7 +177,7 @@ def main():
             print(f"---\n{resp}\n{resp.get('reason')}")
             if resp.get("reason")is None:
                 # Record audio in a separate thread
-                if False:
+                if True:
                     command = record_and_transcribe_plain_text()
                 else:
                     command = input("enter command: ")
