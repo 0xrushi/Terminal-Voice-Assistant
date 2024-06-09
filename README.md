@@ -15,11 +15,11 @@ This sounds simiar to the popular [openinterpreter](https://github.com/OpenInter
 - Integrates with OpenAI's language models to ensure accurate and efficient command generation.
 - Uses [picovoice](https://picovoice.ai/) for quick and efficient wake word detection.
 - Access to the terminal state, even in the midst of errors or SSH sessions, rather than following a strict request-response model
-- Most of the repositories convert NLP to Bash, for example:
+- Most of the other available tools convert NLP to Bash, for example:
   `List me the files in the current folder`
    However, they don't work with:
   `ls -al` (spoken as "l s minus a l" for text-to-speech)
-  This project involves converting realistic vocal commands into actual code.
+  This project involves converting realistic vocal commands into actual code, sometimes for developers its easier to say the command than to describe it in english haha
 
 ### Current workflow
 [Enlarge image](images/current_workflow.svg)
